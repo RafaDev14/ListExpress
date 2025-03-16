@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>ListExpress - Visualizar Productos</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        body {
+            background: #121212;
+            color: #e0e0e0;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            background: #1e1e1e;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            padding: 20px;
+        }
+        h1 {
+            color: #bb86fc;
+        }
+        .table th, .table td {
+            vertical-align: middle;
+            background: #2c2c2c;
+            color: #e0e0e0;
+        }
+        .thead-dark th {
+            background: #3700b3;
+        }
+        .btn i {
+            margin-right: 5px;
+        }
+        .btn-secondary {
+            background: #03dac6;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="text-center mb-4"><i class="fas fa-boxes"></i> Visualizar Productos</h1>
+        <table class="table table-bordered table-hover">
+            <thead class="thead-dark">
+                <tr>
+                    <th><i class="fas fa-tag"></i> Producto</th>
+                    <th><i class="fas fa-sort-numeric-up"></i> Cantidad</th>
+                    <th><i class="fas fa-dollar-sign"></i> Precio</th>
+                    <th><i class="fas fa-cogs"></i> Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="productTableBody">
+                <!-- Productos se cargarán dinámicamente -->
+            </tbody>
+        </table>
+        <button onclick="window.location.href='index.html'" class="btn btn-secondary btn-block mt-3">
+            <i class="fas fa-arrow-left"></i> Volver al Resumen
+        </button>
+    </div>
+    <script src="js/model.js"></script>
+    <script src="js/controller.js"></script>
+    <script>
+        window.onload = loadProducts;
+    </script>
+</body>
+</html>

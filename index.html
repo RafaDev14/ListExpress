@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>ListExpress - Resumen de Compras</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        body {
+            background: #121212;
+            color: #e0e0e0;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            background: #1e1e1e;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            padding: 20px;
+            max-width: 500px;
+        }
+        h1, h3 {
+            color: #bb86fc;
+        }
+        .summary-box {
+            background: #2c2c2c;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+        .summary-box i {
+            color: #03dac6;
+        }
+        .btn-success {
+            background: #03dac6;
+            border: none;
+        }
+        .btn-primary {
+            background: #bb86fc;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="text-center mb-4"><i class="fas fa-clipboard-list"></i> Resumen de Compras</h1>
+        <div id="summary" class="text-center mt-4">
+            <div class="summary-box">
+                <h3><i class="fas fa-box"></i> Total de productos:</h3>
+                <h3 id="totalProducts">0</h3>
+            </div>
+            <div class="summary-box">
+                <h3><i class="fas fa-money-bill-wave"></i> Monto total:</h3>
+                <h3>S/<span id="totalAmount">0.00</span></h3>
+            </div>
+            <div class="mt-4 d-flex justify-content-between">
+                <a href="add.html" class="btn btn-success"><i class="fas fa-plus"></i> Agregar Producto</a>
+                <a href="view.html" class="btn btn-primary"><i class="fas fa-eye"></i> Visualizar Productos</a>
+            </div>
+        </div>
+    </div>
+    <script src="js/model.js"></script>
+    <script src="js/controller.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const products = getProducts();
+            const totalProducts = products.length;
+            const totalAmount = products.reduce((sum, p) => sum + (p.price * p.quantity), 0);
+            document.getElementById('totalProducts').textContent = totalProducts;
+            document.getElementById('totalAmount').textContent = totalAmount.toFixed(2);
+        });
+    </script>
+</body>
+</html>
