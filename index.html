@@ -1,79 +1,577 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>ListExpress - Resumen de Compras</title>
+    <title>ListExpress - Control de Supermercado</title>
+    
+    <!-- PWA & Mobile Meta Tags -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1e1e1e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231e1e1e'/><path d='M25 30h50l-8 30H33L25 30z' fill='none' stroke='%2303dac6' stroke-width='6'/><circle cx='38' cy='72' r='6' fill='%23bb86fc'/><circle cx='62' cy='72' r='6' fill='%23bb86fc'/></svg>">
+
+    <!-- CSS Dependencies -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
     <style>
+        :root {
+            --bg-main: #121212;
+            --bg-card: #1e1e1e;
+            --bg-surface: #2c2c2c;
+            --primary: #bb86fc;
+            --secondary: #03dac6;
+            --accent-warning: #ffb74d;
+            --accent-danger: #cf6679;
+            --text-main: #f5f5f5;
+            --text-muted: #a0a0a0;
+        }
+
         body {
-            background: #121212;
-            color: #e0e0e0;
-            font-family: Arial, sans-serif;
+            background: var(--bg-main);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            padding-bottom: 90px; /* Espacio para barra de acciones */
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
-        .container {
-            background: #1e1e1e;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-            padding: 20px;
-            max-width: 500px;
+
+        /* Header Fijo Sticky con Totales */
+        .sticky-header {
+            position: sticky;
+            top: 0;
+            z-index: 1020;
+            background: var(--bg-card);
+            border-bottom: 2px solid #333;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+            padding: 12px 16px;
         }
-        h1, h3 {
-            color: #bb86fc;
+
+        .cart-total-badge {
+            font-size: 1.85rem;
+            font-weight: 800;
+            color: var(--secondary);
+            line-height: 1.1;
         }
-        .summary-box {
-            background: #2c2c2c;
+
+        .text-teal {
+            color: var(--secondary) !important;
+        }
+
+        .text-purple {
+            color: var(--primary) !important;
+        }
+
+        /* Pestañas de Navegación */
+        .nav-tabs-custom {
+            display: flex;
+            background: #181818;
+            border-radius: 12px;
+            padding: 4px;
+            margin-bottom: 12px;
+            border: 1px solid #333;
+        }
+
+        .nav-tabs-custom .tab-btn {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 8px 4px;
+            font-size: 0.88rem;
+            font-weight: 600;
             border-radius: 8px;
-            padding: 15px;
-            margin: 10px 0;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .nav-tabs-custom .tab-btn.active {
+            background: var(--bg-surface);
+            color: var(--secondary);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Filtros Rápidos */
+        .filter-group {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .filter-btn {
+            flex: 1;
+            background: #222;
+            border: 1px solid #3a3a3a;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            padding: 5px 8px;
+            border-radius: 20px;
+            text-align: center;
+        }
+
+        .filter-btn.active {
+            background: #3700b3;
+            border-color: var(--primary);
+            color: #fff;
+            font-weight: 600;
+        }
+
+        /* Tarjeta de Producto (Touch-friendly para el pasillo del súper) */
+        .product-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 12px 14px;
+            margin-bottom: 10px;
+            border: 1px solid #2e2e2e;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+            transition: transform 0.15s ease, border-color 0.15s ease;
+        }
+
+        .product-card.in-cart {
+            background: #182220;
+            border-color: rgba(3, 218, 198, 0.35);
+        }
+
+        .btn-cart-check {
+            background: transparent;
+            border: none;
+            padding: 0;
+            font-size: 1.85rem;
+            color: #555;
+            cursor: pointer;
+            line-height: 1;
+            transition: transform 0.1s ease, color 0.2s ease;
+        }
+
+        .btn-cart-check:active {
+            transform: scale(0.9);
+        }
+
+        .btn-cart-check.checked {
+            color: var(--secondary);
+        }
+
+        .product-name {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: var(--text-main);
+            line-height: 1.25;
+            cursor: pointer;
+        }
+
+        .text-strikethrough {
+            text-decoration: line-through;
+            opacity: 0.65;
+        }
+
+        .product-total-price {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #ddd;
+        }
+
+        /* Barra Flotante de Acciones Rápidas (Bottom Bar) */
+        .bottom-action-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(30, 30, 30, 0.95);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid #333;
+            padding: 10px 16px;
+            z-index: 1030;
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            justify-content: space-around;
+            box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.5);
         }
-        .summary-box i {
-            color: #03dac6;
+
+        .fab-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #2c2c2c;
+            color: #eee;
+            border: 1px solid #444;
+            border-radius: 12px;
+            padding: 6px 14px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            min-width: 72px;
+            transition: all 0.2s ease;
         }
-        .btn-success {
-            background: #03dac6;
+
+        .fab-btn i {
+            font-size: 1.25rem;
+            margin-bottom: 2px;
+        }
+
+        .fab-btn:active {
+            transform: scale(0.95);
+            background: #3a3a3a;
+        }
+
+        .fab-btn.primary-fab {
+            background: linear-gradient(135deg, #03dac6, #018786);
+            color: #000;
+            font-weight: bold;
             border: none;
+            box-shadow: 0 4px 10px rgba(3, 218, 198, 0.4);
         }
-        .btn-primary {
+
+        /* Modales Dark Theme */
+        .modal-content {
+            background: #1e1e1e;
+            color: var(--text-main);
+            border: 1px solid #444;
+            border-radius: 14px;
+        }
+
+        .modal-header {
+            border-bottom: 1px solid #333;
+        }
+
+        .modal-footer {
+            border-top: 1px solid #333;
+        }
+
+        .close {
+            color: #bbb;
+            text-shadow: none;
+        }
+
+        .form-control {
+            background: #2a2a2a;
+            border: 1px solid #444;
+            color: #fff;
+            border-radius: 8px;
+        }
+
+        .form-control:focus {
+            background: #333;
+            border-color: var(--secondary);
+            color: #fff;
+            box-shadow: 0 0 0 0.2rem rgba(3, 218, 198, 0.25);
+        }
+
+        /* Animación para el micrófono de voz */
+        @keyframes pulse-mic {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(187, 134, 252, 0.7); }
+            70% { transform: scale(1.08); box-shadow: 0 0 0 15px rgba(187, 134, 252, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(187, 134, 252, 0); }
+        }
+
+        .listening-mic-anim {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
             background: #bb86fc;
-            border: none;
+            color: #121212;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.2rem;
+            margin: 0 auto 15px;
+            animation: pulse-mic 1.5s infinite;
         }
     </style>
 </head>
 <body>
-    <div class="container mt-4">
-        <h1 class="text-center mb-4"><i class="fas fa-clipboard-list"></i> Resumen de Compras</h1>
-        <div id="summary" class="text-center mt-4">
-            <div class="summary-box">
-                <h3><i class="fas fa-box"></i> Total de productos:</h3>
-                <h3 id="totalProducts">0</h3>
+
+    <!-- Header Fijo: Total Carrito, Presupuesto y Progreso -->
+    <header class="sticky-header">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+            <div>
+                <span class="text-muted small text-uppercase font-weight-bold">
+                    <i class="fas fa-shopping-cart text-teal mr-1"></i> Total en Carrito
+                </span>
+                <div class="cart-total-badge" id="headerCartTotal">S/ 0.00</div>
             </div>
-            <div class="summary-box">
-                <h3><i class="fas fa-money-bill-wave"></i> Monto total:</h3>
-                <h3>S/<span id="totalAmount">0.00</span></h3>
+            <div class="text-right">
+                <span class="text-muted small text-uppercase font-weight-bold">
+                    <i class="fas fa-clipboard-list text-purple mr-1"></i> Presupuesto Web
+                </span>
+                <div class="h5 font-weight-bold mb-1 text-light" id="headerBudgetTotal">S/ 0.00</div>
+                <div id="headerDiffBadge" class="badge badge-secondary p-1">
+                    <i class="fas fa-check"></i> Calculando...
+                </div>
             </div>
-            <div class="mt-4 d-flex justify-content-between">
-                <a href="add.html" class="btn btn-success"><i class="fas fa-plus"></i> Agregar Producto</a>
-                <a href="view.html" class="btn btn-primary"><i class="fas fa-eye"></i> Visualizar Productos</a>
+        </div>
+
+        <!-- Barra de Progreso de Compras -->
+        <div class="d-flex justify-content-between align-items-center small text-muted mt-2 mb-1">
+            <span id="headerProgressText">0 de 0 en carrito</span>
+            <span><i class="fas fa-store"></i> Modo Supermercado</span>
+        </div>
+        <div class="progress" style="height: 6px; background-color: #2c2c2c; border-radius: 3px;">
+            <div id="headerProgressBar" class="progress-bar bg-info" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+    </header>
+
+    <!-- Contenedor Principal -->
+    <main class="container-fluid px-3 pt-3">
+
+        <!-- Selector de Pestañas Principales -->
+        <div class="nav-tabs-custom">
+            <button class="tab-btn active" data-tab="shopping" onclick="switchTab('shopping')">
+                <i class="fas fa-shopping-basket mr-1"></i> 1. Comprando
+            </button>
+            <button class="tab-btn" data-tab="planning" onclick="switchTab('planning')">
+                <i class="fas fa-list-alt mr-1"></i> 2. Planificar
+            </button>
+            <button class="tab-btn" data-tab="summary" onclick="switchTab('summary')">
+                <i class="fas fa-receipt mr-1"></i> 3. Cuenta Final
+            </button>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- PESTAÑA 1: MODO COMPRA EN VIVO (CHECKLIST CARRITO) -->
+        <!-- ============================================== -->
+        <section id="tab-shopping" class="tab-pane">
+            <!-- Filtros de Estado -->
+            <div class="filter-group">
+                <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">
+                    Todos
+                </button>
+                <button class="filter-btn" data-filter="pending" onclick="setFilter('pending')">
+                    <i class="fas fa-hourglass-half"></i> Pendientes
+                </button>
+                <button class="filter-btn" data-filter="incart" onclick="setFilter('incart')">
+                    <i class="fas fa-check"></i> En Carrito
+                </button>
+            </div>
+
+            <!-- Lista Dinámica de Tarjetas Táctiles -->
+            <div id="shoppingListContainer">
+                <!-- Se llena mediante controller.js -->
+            </div>
+        </section>
+
+        <!-- ============================================== -->
+        <!-- PESTAÑA 2: MODO PLANIFICACIÓN PREVIA (EN CASA) -->
+        <!-- ============================================== -->
+        <section id="tab-planning" class="tab-pane d-none">
+            <div class="alert alert-dark border-secondary p-2 mb-3 small text-muted">
+                <i class="fas fa-info-circle text-teal mr-1"></i>
+                Arma tu lista antes de salir revisando los precios en la página web del súper. Al llegar a la tienda, cambiarás al <b>Modo Comprando</b>.
+            </div>
+
+            <div class="d-flex justify-content-between mb-2">
+                <button class="btn btn-outline-success btn-sm" onclick="openAddModal({ inCart: false })">
+                    <i class="fas fa-plus"></i> Agregar Producto a la Lista
+                </button>
+                <button class="btn btn-outline-danger btn-sm" onclick="handleClearAll()">
+                    <i class="fas fa-trash"></i> Vaciar
+                </button>
+            </div>
+
+            <!-- Tabla de Planificación Previa -->
+            <div id="planningListContainer">
+                <!-- Se llena dinámicamente -->
+            </div>
+        </section>
+
+        <!-- ============================================== -->
+        <!-- PESTAÑA 3: CUENTA FINAL Y EXPORTACIÓN -->
+        <!-- ============================================== -->
+        <section id="tab-summary" class="tab-pane d-none">
+            <div id="summaryViewContainer">
+                <!-- Se llena dinámicamente -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Barra Flotante Inferior de Acciones Rápidas -->
+    <nav class="bottom-action-bar">
+        <!-- Input Cámara Oculto (Nativo con capture) -->
+        <input type="file" id="cameraFileInput" accept="image/*" capture="environment" style="display: none;">
+
+        <!-- Botón Cámara OCR -->
+        <button type="button" class="fab-btn" onclick="document.getElementById('cameraFileInput').click()" title="Escanear etiqueta de góndola con la cámara">
+            <i class="fas fa-camera text-teal"></i>
+            <span>Escanear</span>
+        </button>
+
+        <!-- Botón Dictado por Voz -->
+        <button type="button" class="fab-btn" onclick="startVoiceRecognition()" title="Dictar producto y precio">
+            <i class="fas fa-microphone text-purple"></i>
+            <span>Dictar</span>
+        </button>
+
+        <!-- Botón Agregar Manual Rápido (Principal) -->
+        <button type="button" class="fab-btn primary-fab" onclick="openAddModal({ inCart: currentTab === 'shopping' })" title="Agregar producto manualmente">
+            <i class="fas fa-plus"></i>
+            <span>Agregar</span>
+        </button>
+
+        <!-- Botón Ver Resumen / Finalizar -->
+        <button type="button" class="fab-btn" onclick="switchTab('summary')" title="Ver cuenta final">
+            <i class="fas fa-file-invoice-dollar text-warning"></i>
+            <span>Cuenta</span>
+        </button>
+    </nav>
+
+    <!-- ============================================== -->
+    <!-- MODAL 1: AJUSTE RÁPIDO DE PRECIO EN GÓNDOLA    -->
+    <!-- (Cuando el precio en tienda difiere de la web) -->
+    <!-- ============================================== -->
+    <div class="modal fade" id="priceOverrideModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <form id="priceOverrideForm">
+                    <div class="modal-header">
+                        <h5 class="modal-title font-weight-bold text-teal">
+                            <i class="fas fa-tag mr-2"></i> Confirmar Precio en Góndola
+                        </h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <h6 id="modalOverrideProductName" class="font-weight-bold text-white mb-2">Producto</h6>
+                        
+                        <div class="d-flex justify-content-between align-items-center bg-dark p-2 rounded mb-3 border border-secondary">
+                            <span class="text-muted small">Precio que viste en la web:</span>
+                            <span id="modalOverrideEstPrice" class="font-weight-bold text-info">S/ 0.00</span>
+                        </div>
+
+                        <div class="form-group mb-2">
+                            <label for="modalOverrideRealPriceInput" class="small text-muted mb-1">
+                                ¿Cuánto marca la etiqueta del estante?
+                            </label>
+                            <div class="input-group input-group-lg">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text bg-secondary text-white font-weight-bold border-0">S/</span>
+                                </div>
+                                <input type="number" step="0.01" inputmode="decimal" class="form-control font-weight-bold text-teal" 
+                                       id="modalOverrideRealPriceInput" placeholder="0.00" required>
+                            </div>
+                            <small class="form-text text-muted">Ingresa el precio real si cambió o está en oferta.</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer d-flex justify-content-between">
+                        <button type="button" class="btn btn-outline-secondary" onclick="keepEstimatedPriceInModal()">
+                            <i class="fas fa-check"></i> Mantener Precio Web
+                        </button>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save"></i> Guardar y Meter al Carrito
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
+
+    <!-- ============================================== -->
+    <!-- MODAL 2: AGREGAR PRODUCTO (MANUAL, OCR O VOZ)  -->
+    <!-- ============================================== -->
+    <div class="modal fade" id="quickAddModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <form id="quickAddForm">
+                    <div class="modal-header">
+                        <h5 class="modal-title font-weight-bold text-teal">
+                            <i class="fas fa-cart-plus mr-2"></i> Agregar Producto
+                        </h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="quickAddName" class="small text-muted mb-1"><i class="fas fa-tag"></i> Nombre del Producto</label>
+                            <input type="text" class="form-control" id="quickAddName" list="productCatalogSuggestions" 
+                                   placeholder="Ej: Leche Gloria, Arroz Costeño..." oninput="handleCatalogSelect(this)" required autocomplete="off">
+                            <datalist id="productCatalogSuggestions">
+                                <!-- Sugerencias del historial -->
+                            </datalist>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="form-group">
+                                    <label for="quickAddQuantity" class="small text-muted mb-1"><i class="fas fa-sort-numeric-up"></i> Cantidad</label>
+                                    <input type="number" min="1" class="form-control font-weight-bold" id="quickAddQuantity" value="1" required>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="form-group">
+                                    <label for="quickAddPrice" class="small text-muted mb-1"><i class="fas fa-dollar-sign"></i> Precio (S/)</label>
+                                    <input type="number" step="0.01" inputmode="decimal" class="form-control font-weight-bold text-teal" 
+                                           id="quickAddPrice" placeholder="0.00" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="custom-control custom-checkbox mt-2">
+                            <input type="checkbox" class="custom-control-input" id="quickAddInCart">
+                            <label class="custom-control-label font-weight-bold" for="quickAddInCart">
+                                Meter de inmediato al carrito físico
+                            </label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-success"><i class="fas fa-check"></i> Guardar Producto</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- MODAL 3: PROGRESO DE OCR (ESCANEANDO ETIQUETA) -->
+    <!-- ============================================== -->
+    <div class="modal fade" id="ocrProgressModal" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content text-center p-4">
+                <div class="spinner-border text-teal mb-3" style="width: 3rem; height: 3rem;" role="status">
+                    <span class="sr-only">Procesando...</span>
+                </div>
+                <h5 class="font-weight-bold text-white mb-2">Escaneando Etiqueta</h5>
+                <p id="ocrProgressStatus" class="text-muted small mb-3">Analizando texto y precio con IA local...</p>
+                <div class="progress" style="height: 10px; background-color: #2c2c2c;">
+                    <div id="ocrProgressBar" class="progress-bar bg-success progress-bar-striped progress-bar-animated" style="width: 10%;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- MODAL 4: ESCUCHA DE VOZ (DICTADO)              -->
+    <!-- ============================================== -->
+    <div class="modal fade" id="voiceListeningModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content text-center p-4">
+                <div class="listening-mic-anim">
+                    <i class="fas fa-microphone"></i>
+                </div>
+                <h5 class="font-weight-bold text-white mb-2" id="voiceListeningStatus">Escuchando...</h5>
+                <p id="voiceLiveTranscript" class="text-teal font-weight-bold mb-3 font-italic">Di el producto y el precio...</p>
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="VoiceInput.stopListening(); $('#voiceListeningModal').modal('hide');">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Dependencies -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Tesseract.js (Client-side OCR) -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+    <!-- App Scripts -->
     <script src="js/model.js"></script>
+    <script src="js/ocr.js"></script>
+    <script src="js/speech.js"></script>
     <script src="js/controller.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const products = getProducts();
-            const totalProducts = products.length;
-            const totalAmount = products.reduce((sum, p) => sum + (p.price * p.quantity), 0);
-            document.getElementById('totalProducts').textContent = totalProducts;
-            document.getElementById('totalAmount').textContent = totalAmount.toFixed(2);
-        });
-    </script>
+
 </body>
 </html>

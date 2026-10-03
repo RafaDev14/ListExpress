@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>ListExpress - Agregar Producto</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
@@ -11,71 +11,197 @@
         body {
             background: #121212;
             color: #e0e0e0;
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            padding: 15px;
         }
         .container {
             background: #1e1e1e;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            padding: 24px;
             max-width: 500px;
+            border: 1px solid #333;
         }
         h1 {
             color: #bb86fc;
-        }
-        .form-group label {
-            color: #e0e0e0;
+            font-size: 1.6rem;
         }
         .form-control {
             background: #2c2c2c;
-            color: #e0e0e0;
-            border: 1px solid #424242;
+            color: #fff;
+            border: 1px solid #444;
+            border-radius: 8px;
         }
-        .form-control::placeholder {
-            color: #b0b0b0;
-        }
-        .btn-secondary {
-            background: #3a3a3a;
-            border: none;
+        .form-control:focus {
+            background: #333;
+            border-color: #03dac6;
+            color: #fff;
+            box-shadow: 0 0 0 0.2rem rgba(3, 218, 198, 0.25);
         }
         .btn-success {
             background: #03dac6;
             border: none;
+            color: #000;
+            font-weight: bold;
+        }
+        .btn-outline-info {
+            color: #03dac6;
+            border-color: #03dac6;
+        }
+        .btn-outline-info:hover {
+            background: #03dac6;
+            color: #000;
+        }
+        .quick-input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .quick-input-group button {
+            flex: 1;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: 600;
         }
     </style>
 </head>
 <body>
-    <div class="container mt-4">
+    <div class="container mt-2">
         <h1 class="text-center mb-4"><i class="fas fa-plus-circle"></i> Agregar Producto</h1>
-        <form id="addProductForm" class="mt-4">
+
+        <!-- Botones de captura rápida (Cámara OCR y Voz) -->
+        <div class="quick-input-group">
+            <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;">
+            <button type="button" class="btn btn-outline-info" onclick="document.getElementById('cameraInput').click()">
+                <i class="fas fa-camera"></i> Escanear Etiqueta
+            </button>
+            <button type="button" class="btn btn-outline-warning" id="btnVoice" onclick="startVoiceInput()">
+                <i class="fas fa-microphone"></i> Dictar por Voz
+            </button>
+        </div>
+
+        <div id="statusAlert" class="alert alert-info d-none p-2 small"></div>
+
+        <form id="addProductForm">
             <div class="form-group">
-                <label for="productName"><i class="fas fa-tag"></i> Producto</label>
-                <input type="text" class="form-control" id="productName" placeholder="Nombre del producto" required>
+                <label for="productName"><i class="fas fa-tag"></i> Nombre del Producto</label>
+                <input type="text" class="form-control" id="productName" list="catalogList" placeholder="Ej: Leche Gloria, Detergente..." required autocomplete="off">
+                <datalist id="catalogList"></datalist>
             </div>
-            <div class="form-group">
-                <label for="productQuantity"><i class="fas fa-sort-numeric-up"></i> Cantidad</label>
-                <input type="number" class="form-control" id="productQuantity" placeholder="Cantidad" required>
+            <div class="row">
+                <div class="col-6">
+                    <div class="form-group">
+                        <label for="productQuantity"><i class="fas fa-sort-numeric-up"></i> Cantidad</label>
+                        <input type="number" min="1" class="form-control" id="productQuantity" value="1" required>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="form-group">
+                        <label for="productPrice"><i class="fas fa-dollar-sign"></i> Precio (S/)</label>
+                        <input type="number" step="0.01" inputmode="decimal" class="form-control" id="productPrice" placeholder="0.00" required>
+                    </div>
+                </div>
             </div>
-            <div class="form-group">
-                <label for="productPrice"><i class="fas fa-dollar-sign"></i> Precio</label>
-                <input type="number" step="0.01" class="form-control" id="productPrice" placeholder="Precio" required>
+
+            <div class="custom-control custom-checkbox mb-4">
+                <input type="checkbox" class="custom-control-input" id="inCartCheck" checked>
+                <label class="custom-control-label" for="inCartCheck">
+                    Meter directamente al carrito de compras
+                </label>
             </div>
+
             <div class="d-flex justify-content-between">
-                <button type="button" class="btn btn-secondary" onclick="window.location.href='index.html'"><i class="fas fa-times"></i> Cancelar</button>
-                <button type="submit" class="btn btn-success"><i class="fas fa-check"></i> Agregar</button>
+                <button type="button" class="btn btn-secondary" onclick="window.location.href='index.html'">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-check"></i> Guardar Producto
+                </button>
             </div>
         </form>
     </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <script src="js/model.js"></script>
-    <script src="js/controller.js"></script>
+    <script src="js/ocr.js"></script>
+    <script src="js/speech.js"></script>
     <script>
+        // Cargar sugerencias del catálogo
+        document.addEventListener('DOMContentLoaded', () => {
+            const datalist = document.getElementById('catalogList');
+            const catalog = getCatalog();
+            catalog.forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item.name;
+                opt.label = `S/ ${(item.lastPrice || 0).toFixed(2)}`;
+                datalist.appendChild(opt);
+            });
+        });
+
+        // OCR Cámara
+        document.getElementById('cameraInput').addEventListener('change', async (e) => {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+
+            const alertBox = document.getElementById('statusAlert');
+            alertBox.className = 'alert alert-info p-2 small';
+            alertBox.textContent = 'Analizando etiqueta de góndola con la cámara...';
+            alertBox.classList.remove('d-none');
+
+            try {
+                const res = await ShelfTagOCR.recognizeTag(file, (pct) => {
+                    alertBox.textContent = `Escaneando texto de la etiqueta: ${pct}%`;
+                });
+                if (res.name) document.getElementById('productName').value = res.name;
+                if (res.price) document.getElementById('productPrice').value = res.price.toFixed(2);
+                alertBox.className = 'alert alert-success p-2 small';
+                alertBox.textContent = '¡Etiqueta leída con éxito! Revisa los datos y guarda.';
+            } catch (err) {
+                alertBox.className = 'alert alert-warning p-2 small';
+                alertBox.textContent = 'No se pudo leer la etiqueta claramente. Puedes ingresarla manualmente.';
+            }
+        });
+
+        // Voz
+        function startVoiceInput() {
+            if (!VoiceInput.isSupported()) {
+                alert('El reconocimiento de voz no está soportado en este navegador.');
+                return;
+            }
+            const alertBox = document.getElementById('statusAlert');
+            alertBox.className = 'alert alert-warning p-2 small';
+            alertBox.textContent = '🎙️ Escuchando... Di: "Nombre del producto y su precio"';
+            alertBox.classList.remove('d-none');
+
+            VoiceInput.startListening({
+                onResult: (res) => {
+                    if (res.name) document.getElementById('productName').value = res.name;
+                    if (res.quantity) document.getElementById('productQuantity').value = res.quantity;
+                    if (res.price) document.getElementById('productPrice').value = res.price.toFixed(2);
+                    alertBox.className = 'alert alert-success p-2 small';
+                    alertBox.textContent = `Detectado: "${res.rawText}"`;
+                },
+                onError: (err) => {
+                    alertBox.className = 'alert alert-danger p-2 small';
+                    alertBox.textContent = err;
+                }
+            });
+        }
+
+        // Form Submit
         document.getElementById('addProductForm').addEventListener('submit', function (e) {
             e.preventDefault();
-            const name = document.getElementById('productName').value;
-            const quantity = parseInt(document.getElementById('productQuantity').value);
+            const name = document.getElementById('productName').value.trim();
+            const quantity = parseInt(document.getElementById('productQuantity').value, 10);
             const price = parseFloat(document.getElementById('productPrice').value);
-            addProduct(name, quantity, price);
-            alert('Producto agregado con éxito!');
+            const inCart = document.getElementById('inCartCheck').checked;
+
+            addProduct(name, quantity, price, {
+                inCart: inCart,
+                realPrice: inCart ? price : undefined
+            });
+
             window.location.href = 'index.html';
         });
     </script>

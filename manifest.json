@@ -1,0 +1,17 @@
+{
+  "name": "ListExpress - Control de Supermercado",
+  "short_name": "ListExpress",
+  "description": "Controla tus compras en el supermercado, presupuesto vs carrito en tiempo real, escaneo OCR de etiquetas y dictado por voz.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#121212",
+  "theme_color": "#1e1e1e",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231e1e1e'/><path d='M25 30h50l-8 30H33L25 30z' fill='none' stroke='%2303dac6' stroke-width='6' stroke-linejoin='round'/><circle cx='38' cy='72' r='6' fill='%23bb86fc'/><circle cx='62' cy='72' r='6' fill='%23bb86fc'/><path d='M20 20h8l3 12' fill='none' stroke='%2303dac6' stroke-width='6' stroke-linecap='round'/></svg>",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}
