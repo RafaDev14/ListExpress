@@ -8,36 +8,30 @@ const ShelfTagOCR = {
     /**
      * Limpia y preprocesa una imagen en un Canvas HTML para mejorar el reconocimiento de texto
      */
+    /**
+     * Limpia y optimiza la imagen para OCR sin filtros destructivos
+     */
     preprocessImage: function (imageElement) {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
 
-        // Escalar manteniendo proporción con un ancho estándar para OCR óptimo (1200px)
-        const scale = Math.min(1, 1600 / Math.max(imageElement.width, imageElement.height));
+        // Escalar a una resolución óptima para OCR (entre 1000px y 1600px de lado mayor)
+        const maxDim = Math.max(imageElement.width, imageElement.height);
+        let scale = 1;
+        if (maxDim > 1800) {
+            scale = 1800 / maxDim;
+        } else if (maxDim < 800) {
+            scale = 800 / maxDim; // Aumentar resolución si es muy pequeña
+        }
+
         canvas.width = Math.round(imageElement.width * scale);
         canvas.height = Math.round(imageElement.height * scale);
 
+        // Renderizado nítido
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(imageElement, 0, 0, canvas.width, canvas.height);
 
-        // Ajuste de contraste y escala de grises
-        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const data = imgData.data;
-
-        for (let i = 0; i < data.length; i += 4) {
-            // Conversión a escala de grises ponderada
-            const gray = (data[i] * 0.299) + (data[i + 1] * 0.587) + (data[i + 2] * 0.114);
-            
-            // Aumento de contraste simple
-            const contrast = 1.25;
-            const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
-            const adjusted = Math.min(255, Math.max(0, factor * (gray - 128) + 128));
-
-            data[i] = adjusted;
-            data[i + 1] = adjusted;
-            data[i + 2] = adjusted;
-        }
-
-        ctx.putImageData(imgData, 0, 0);
         return canvas;
     },
 
@@ -209,7 +203,8 @@ const ShelfTagOCR = {
         return {
             name: chosenName,
             price: chosenPrice,
-            allPricesFound: pricesFound.map(p => p.val)
+            allPricesFound: [...new Set(pricesFound.map(p => p.val))],
+            candidateNames: candidateNameLines
         };
     }
 };

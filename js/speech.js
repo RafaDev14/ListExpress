@@ -25,8 +25,25 @@ const VoiceInput = {
      * @param {Object} callbacks { onStart, onResult, onError, onEnd }
      */
     startListening: function (callbacks = {}) {
+        // Validación de entorno seguro (file:// vs https://)
+        if (window.location.protocol === 'file:') {
+            if (callbacks.onError) {
+                callbacks.onError(
+                    '⚠️ Estás abriendo la app de forma local (file:/// directo).\n\n' +
+                    'Por políticas de seguridad de Google y Apple, el reconocimiento de voz nativo requiere un sitio web seguro (HTTPS) o localhost.\n\n' +
+                    '👉 Al desplegarlo en tu GitHub Pages (https://...) funcionará de inmediato con el micrófono en tu teléfono.'
+                );
+            }
+            return;
+        }
+
         if (!this.isSupported()) {
-            if (callbacks.onError) callbacks.onError('El reconocimiento de voz no está soportado en este navegador.');
+            if (callbacks.onError) {
+                callbacks.onError(
+                    'El reconocimiento de voz nativo no está disponible en este navegador.\n' +
+                    'Te recomendamos abrir la aplicación en Chrome (Android) o Safari (iOS).'
+                );
+            }
             return;
         }
 
@@ -53,11 +70,27 @@ const VoiceInput = {
         this.recognition.onerror = (event) => {
             this.isListening = false;
             let errorMsg = 'Error en el reconocimiento de voz';
-            if (event.error === 'not-allowed') {
-                errorMsg = 'Permiso de micrófono denegado.';
-            } else if (event.error === 'no-speech') {
-                errorMsg = 'No se detectó ninguna voz.';
+            
+            switch (event.error) {
+                case 'not-allowed':
+                    errorMsg = 'Permiso de micrófono bloqueado. Por favor autoriza el uso del micrófono en el candado o configuración del navegador.';
+                    break;
+                case 'network':
+                    errorMsg = 'Error de red en el servicio de voz de Google. Requiere conexión a internet activa y estar en un servidor web seguro (HTTPS).';
+                    break;
+                case 'no-speech':
+                    errorMsg = 'No se detectó sonido. Intenta hablar más claro o más cerca del micrófono.';
+                    break;
+                case 'audio-capture':
+                    errorMsg = 'No se encontró ningún micrófono conectado en este dispositivo.';
+                    break;
+                case 'aborted':
+                    errorMsg = 'Escucha cancelada.';
+                    break;
+                default:
+                    errorMsg = `Error en el reconocimiento de voz (${event.error || 'desconocido'}).`;
             }
+            
             if (callbacks.onError) callbacks.onError(errorMsg);
         };
 
@@ -70,6 +103,7 @@ const VoiceInput = {
             this.recognition.start();
         } catch (e) {
             console.warn('Error al iniciar SpeechRecognition:', e);
+            if (callbacks.onError) callbacks.onError('No se pudo iniciar el micrófono: ' + (e.message || e));
         }
     },
 

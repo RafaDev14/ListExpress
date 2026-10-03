@@ -50,6 +50,14 @@ function setupEventListeners() {
             submitQuickAdd();
         });
     }
+
+    // Input en tiempo real para importación masiva
+    const bulkTextarea = document.getElementById('bulkImportTextarea');
+    if (bulkTextarea) {
+        bulkTextarea.addEventListener('input', () => {
+            updateBulkImportPreview();
+        });
+    }
 }
 
 // ==========================================
@@ -438,11 +446,164 @@ function handleClearAll() {
 // MÉTODOS DE ENTRADA RÁPIDA (OCR, VOZ, MANUAL)
 // ==========================================
 
+// ==========================================
+// MÉTODOS DE ENTRADA RÁPIDA (OCR, VOZ, MANUAL, MASIVO)
+// ==========================================
+
+let lastParsedBulk = { items: [], totalCount: 0, totalEstimatedBudget: 0 };
+
+/**
+ * Abre el modal para pegar una lista en masa
+ */
+function openBulkImportModal() {
+    $('#bulkImportModal').modal('show');
+    setTimeout(() => {
+        const textarea = document.getElementById('bulkImportTextarea');
+        if (textarea) {
+            textarea.focus();
+            updateBulkImportPreview();
+        }
+    }, 400);
+}
+
+/**
+ * Actualiza la previsualización en vivo mientras el usuario escribe o pega
+ */
+function updateBulkImportPreview() {
+    const textarea = document.getElementById('bulkImportTextarea');
+    if (!textarea) return;
+
+    const rawText = textarea.value;
+    const isLineTotal = document.getElementById('bulkPriceIsTotal') ? document.getElementById('bulkPriceIsTotal').checked : true;
+    
+    lastParsedBulk = parseBulkProductText(rawText, { priceIsLineTotal: isLineTotal });
+
+    const statsBadge = document.getElementById('bulkPreviewStats');
+    const previewContainer = document.getElementById('bulkPreviewContainer');
+    const btnSubmit = document.getElementById('btnSubmitBulkImport');
+
+    if (lastParsedBulk.totalCount === 0) {
+        if (statsBadge) statsBadge.innerHTML = `<span class="text-muted"><i class="fas fa-info-circle"></i> Pega tu lista arriba para previsualizar</span>`;
+        if (previewContainer) previewContainer.innerHTML = `<div class="text-center text-muted py-3 small">Esperando texto de la lista...</div>`;
+        if (btnSubmit) btnSubmit.disabled = true;
+        return;
+    }
+
+    if (btnSubmit) btnSubmit.disabled = false;
+
+    if (statsBadge) {
+        statsBadge.innerHTML = `
+            <span class="badge badge-success px-2 py-1 mr-2"><i class="fas fa-check"></i> ${lastParsedBulk.totalCount} productos detectados</span>
+            <span class="badge badge-info px-2 py-1"><i class="fas fa-coins"></i> Total Estimado: S/ ${lastParsedBulk.totalEstimatedBudget.toFixed(2)}</span>
+        `;
+    }
+
+    if (previewContainer) {
+        const itemsToShow = lastParsedBulk.items.slice(0, 6);
+        let previewHtml = `
+            <div class="table-responsive" style="max-height: 220px; overflow-y: auto;">
+                <table class="table table-sm table-dark table-striped mb-0 small">
+                    <thead>
+                        <tr>
+                            <th>Cant.</th>
+                            <th>Producto</th>
+                            <th class="text-right">Unitario</th>
+                            <th class="text-right">Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        itemsToShow.forEach(it => {
+            previewHtml += `
+                <tr>
+                    <td class="font-weight-bold text-teal">${it.quantity}x</td>
+                    <td class="text-truncate" style="max-width: 190px;" title="${escapeHtml(it.name)}">${escapeHtml(it.name)}</td>
+                    <td class="text-right text-muted">S/ ${it.price.toFixed(2)}</td>
+                    <td class="text-right font-weight-bold text-info">S/ ${it.lineTotal.toFixed(2)}</td>
+                </tr>
+            `;
+        });
+
+        previewHtml += `</tbody></table></div>`;
+
+        if (lastParsedBulk.items.length > 6) {
+            previewHtml += `<div class="text-center text-muted small mt-1 font-italic">... y ${lastParsedBulk.items.length - 6} productos más en la lista.</div>`;
+        }
+
+        previewContainer.innerHTML = previewHtml;
+    }
+}
+
+/**
+ * Carga la lista de ejemplo en el textarea
+ */
+function loadBulkExample() {
+    const example = `* 3x Leche Parcialmente Descremada UHT VIGOR 800ml - S/ 14.40
+* 3x Leche Parcialmente Deslactosada UHT VIGOR 800ml - S/ 14.70
+* 3x Lavavajilla líquido BOREAL Manzana 500Ml - S/ 11.70
+* 2x Sacagrasa SAPOLIO Limón 500ml - S/ 12.20
+* 1x Aceite Vegetal PRIMOR Clásico 1.8L - S/ 15.20
+* 1x Detergente BOLIVAR Cuidado Total 4Kg - S/ 41.90
+* 2x Arroz Superior PAISANA 5Kg - S/ 37.00
+* 8x Atún en Aceite Vegetal CAMPOMAR 150g - S/ 38.40
+* 1x Mayonesa ALACENA 475g - S/ 12.30`;
+
+    const textarea = document.getElementById('bulkImportTextarea');
+    if (textarea) {
+        textarea.value = example;
+        updateBulkImportPreview();
+    }
+}
+
+/**
+ * Ejecuta la importación masiva a la lista
+ */
+function executeBulkImport() {
+    if (!lastParsedBulk || lastParsedBulk.items.length === 0) {
+        alert('No se detectaron productos válidos para importar.');
+        return;
+    }
+
+    const replaceExisting = document.getElementById('bulkReplaceExisting') ? document.getElementById('bulkReplaceExisting').checked : false;
+
+    addMultipleProducts(lastParsedBulk.items, replaceExisting);
+    $('#bulkImportModal').modal('hide');
+
+    // Cambiar a la pestaña de Planificar o Compras para que vea su lista
+    switchTab('planning');
+    renderApp();
+
+    alert(`¡Listo! Se agregaron ${lastParsedBulk.items.length} productos con un presupuesto total de S/ ${lastParsedBulk.totalEstimatedBudget.toFixed(2)}.`);
+}
+
 function openAddModal(prefill = {}) {
     document.getElementById('quickAddName').value = prefill.name || '';
     document.getElementById('quickAddQuantity').value = prefill.quantity || 1;
     document.getElementById('quickAddPrice').value = prefill.price !== undefined ? prefill.price : '';
     document.getElementById('quickAddInCart').checked = Boolean(prefill.inCart);
+
+    // Sugerencias táctiles si el OCR detectó alternativas
+    const badgeContainer = document.getElementById('ocrSuggestionsBox');
+    if (badgeContainer) {
+        let badgeHtml = '';
+        if (prefill.candidatePrices && prefill.candidatePrices.length > 1) {
+            badgeHtml += `<div class="mb-2"><small class="text-muted d-block">Precios detectados en la imagen (toca para elegir):</small>`;
+            prefill.candidatePrices.forEach(p => {
+                badgeHtml += `<button type="button" class="btn btn-xs btn-outline-info mr-1 mb-1 py-0 px-2" onclick="document.getElementById('quickAddPrice').value='${p.toFixed(2)}'">S/ ${p.toFixed(2)}</button>`;
+            });
+            badgeHtml += `</div>`;
+        }
+
+        if (prefill.candidateNames && prefill.candidateNames.length > 1) {
+            badgeHtml += `<div><small class="text-muted d-block">Líneas de texto detectadas (toca para elegir):</small>`;
+            prefill.candidateNames.slice(0, 3).forEach(n => {
+                badgeHtml += `<button type="button" class="btn btn-xs btn-outline-secondary mr-1 mb-1 py-0 px-2 text-left text-truncate d-inline-block" style="max-width: 280px;" onclick="document.getElementById('quickAddName').value='${escapeHtml(n)}'">${escapeHtml(n)}</button>`;
+            });
+            badgeHtml += `</div>`;
+        }
+        badgeContainer.innerHTML = badgeHtml;
+    }
 
     $('#quickAddModal').modal('show');
 }
@@ -494,20 +655,32 @@ async function processTagImage(imageFile) {
             name: result.name || 'Producto escaneado',
             price: result.price || 0,
             quantity: 1,
-            inCart: true // Si lo escaneó en el estante, lo común es que lo meta al carrito
+            candidatePrices: result.allPricesFound,
+            candidateNames: result.candidateNames,
+            inCart: true // Si lo escaneó en el estante, al carrito
         });
 
     } catch (err) {
         progressModal.modal('hide');
         console.error('Error en OCR:', err);
-        alert('No se pudo leer la etiqueta claramente. Puedes ingresar el producto manualmente o intentar con otra foto con mejor iluminación.');
+        alert('No se pudo leer la etiqueta claramente. Si es una captura de pantalla, te recomendamos recortarla o usar la opción "📋 Pegar Lista Masiva".');
     }
 }
 
 /**
- * Inicia la captura por voz usando VoiceInput
+ * Inicia la captura por voz usando VoiceInput con diagnóstico de seguridad file://
  */
 function startVoiceRecognition() {
+    if (window.location.protocol === 'file:') {
+        alert(
+            '⚠️ AVISO IMPORTANTE:\n\n' +
+            'Estás abriendo la aplicación desde un archivo local (file:///).\n\n' +
+            'Los navegadores (Chrome, Edge y Safari) bloquean el reconocimiento de voz en archivos locales por seguridad.\n\n' +
+            '🚀 Cuando lo abras en tu enlace de GitHub Pages (https://...) funcionará de inmediato con el micrófono en tu celular.'
+        );
+        return;
+    }
+
     if (!VoiceInput.isSupported()) {
         alert('Tu navegador no soporta reconocimiento de voz nativo. Por favor usa Chrome en Android o Safari en iPhone.');
         return;
@@ -532,7 +705,7 @@ function startVoiceRecognition() {
                 name: res.name || res.rawText,
                 quantity: res.quantity || 1,
                 price: res.price || 0,
-                inCart: currentTab === 'shopping' // si está en compras, al carrito
+                inCart: currentTab === 'shopping'
             });
         },
         onError: (errMsg) => {

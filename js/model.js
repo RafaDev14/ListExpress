@@ -95,7 +95,124 @@ function addProduct(name, quantity, price, options = {}) {
     return product;
 }
 
-function getProducts() {
+/**
+ * Agrega múltiples productos de una sola vez (Importación Masiva)
+ * @param {Array<{name: string, quantity: number, price: number, inCart?: boolean}>} itemsList 
+ * @param {boolean} replaceExisting Si es true, vacía la lista antes de insertar
+ */
+function addMultipleProducts(itemsList, replaceExisting = false) {
+    if (!Array.isArray(itemsList) || itemsList.length === 0) return [];
+    if (replaceExisting) {
+        products = [];
+    }
+
+    const added = [];
+    const timestamp = Date.now();
+
+    itemsList.forEach((item, idx) => {
+        const cleanName = (item.name || '').trim();
+        if (!cleanName) return;
+
+        const qty = parseInt(item.quantity, 10) || 1;
+        const estPrice = parseFloat(item.price) || 0;
+        const realPrice = item.realPrice !== undefined ? parseFloat(item.realPrice) : estPrice;
+        const inCart = Boolean(item.inCart);
+
+        const prod = {
+            id: `prod_${timestamp}_${idx}_${Math.random().toString(36).substr(2, 4)}`,
+            name: cleanName,
+            quantity: qty,
+            estimatedPrice: estPrice,
+            realPrice: realPrice,
+            price: inCart ? realPrice : estPrice,
+            inCart: inCart,
+            priceOverridden: false,
+            createdAt: new Date().toISOString()
+        };
+
+        products.push(prod);
+        added.push(prod);
+        saveToCatalog(cleanName, estPrice > 0 ? estPrice : realPrice);
+    });
+
+    saveProducts();
+    return added;
+}
+
+/**
+ * Analiza texto pegado en masa con listas de compras (como el carrito de Plaza Vea o notas)
+ * Soporta formatos tipo:
+ * "* 3x Leche Parcialmente Descremada UHT VIGOR 800ml - S/ 14.40"
+ * "2x Arroz 5kg - 37.00"
+ * "Aceite 15.20"
+ * @param {string} rawText 
+ * @param {Object} options { priceIsLineTotal: true }
+ */
+function parseBulkProductText(rawText, options = { priceIsLineTotal: true }) {
+    if (!rawText || !rawText.trim()) {
+        return { items: [], totalCount: 0, totalEstimatedBudget: 0, errors: [] };
+    }
+
+    const lines = rawText.split('\n');
+    const items = [];
+    const errors = [];
+    let totalEstimatedBudget = 0;
+
+    // Patrón flexible para líneas de lista de compras
+    const lineRegex = /^\s*(?:[\*\-\•]|\d+[\.\)])?\s*(?:(\d+)\s*x\s*)?(.*?)(?:\s*[-–—:|]\s*(?:S\/?\.?|\$)?\s*(\d+[.,]\d{2}))?\s*$/i;
+
+    lines.forEach((line, index) => {
+        const trimmed = line.trim();
+        if (!trimmed) return; // ignorar líneas vacías
+
+        const match = trimmed.match(lineRegex);
+        if (match) {
+            const qtyStr = match[1];
+            let name = (match[2] || '').trim();
+            const priceStr = match[3];
+
+            // Si por alguna razón el nombre quedó vacío pero hay texto
+            if (!name && !priceStr) {
+                errors.push({ lineIndex: index + 1, text: trimmed });
+                return;
+            }
+
+            const qty = qtyStr ? parseInt(qtyStr, 10) : 1;
+            let rawNum = priceStr ? parseFloat(priceStr.replace(',', '.')) : 0;
+
+            // Determinar si el precio pegado es el Total de la línea o Unitario
+            let unitPrice = 0;
+            let lineTotal = 0;
+
+            if (options.priceIsLineTotal && qty > 1) {
+                lineTotal = rawNum;
+                unitPrice = Number((rawNum / qty).toFixed(2));
+            } else {
+                unitPrice = rawNum;
+                lineTotal = Number((rawNum * qty).toFixed(2));
+            }
+
+            totalEstimatedBudget += lineTotal;
+
+            items.push({
+                name: name || `Producto ${index + 1}`,
+                quantity: qty,
+                price: unitPrice,       // precio unitario estimado
+                lineTotal: lineTotal,   // subtotal estimado de la línea
+                rawLine: trimmed
+            });
+        } else {
+            errors.push({ lineIndex: index + 1, text: trimmed });
+        }
+    });
+
+    return {
+        items,
+        totalCount: items.length,
+        totalEstimatedBudget: Number(totalEstimatedBudget.toFixed(2)),
+        errors
+    };
+}
     return products;
 }
 

@@ -361,10 +361,15 @@
                 Arma tu lista antes de salir revisando los precios en la página web del súper. Al llegar a la tienda, cambiarás al <b>Modo Comprando</b>.
             </div>
 
-            <div class="d-flex justify-content-between mb-2">
-                <button class="btn btn-outline-success btn-sm" onclick="openAddModal({ inCart: false })">
-                    <i class="fas fa-plus"></i> Agregar Producto a la Lista
-                </button>
+            <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
+                <div class="d-flex gap-2">
+                    <button class="btn btn-success btn-sm font-weight-bold mr-2" onclick="openBulkImportModal()">
+                        <i class="fas fa-paste"></i> Pegar Lista Masiva
+                    </button>
+                    <button class="btn btn-outline-info btn-sm" onclick="openAddModal({ inCart: false })">
+                        <i class="fas fa-plus"></i> Agregar Uno a Uno
+                    </button>
+                </div>
                 <button class="btn btn-outline-danger btn-sm" onclick="handleClearAll()">
                     <i class="fas fa-trash"></i> Vaciar
                 </button>
@@ -515,6 +520,9 @@
                                 Meter de inmediato al carrito físico
                             </label>
                         </div>
+
+                        <!-- Sugerencias alternativas del escáner OCR -->
+                        <div id="ocrSuggestionsBox" class="mt-2"></div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
@@ -557,6 +565,80 @@
                 <button type="button" class="btn btn-outline-secondary btn-sm" onclick="VoiceInput.stopListening(); $('#voiceListeningModal').modal('hide');">
                     Cancelar
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- MODAL 5: PEGAR LISTA MASIVA (IMPORTACIÓN)      -->
+    <!-- ============================================== -->
+    <div class="modal fade" id="bulkImportModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title font-weight-bold text-teal">
+                        <i class="fas fa-clipboard-list mr-2"></i> Pegar Lista de Compras Masiva
+                    </h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label for="bulkImportTextarea" class="small text-muted mb-0 font-weight-bold">
+                            Pega tu lista aquí (de Plaza Vea, WhatsApp o tus notas):
+                        </label>
+                        <button type="button" class="btn btn-outline-info btn-xs py-0 px-2 small" onclick="loadBulkExample()">
+                            <i class="fas fa-magic"></i> Cargar ejemplo
+                        </button>
+                    </div>
+
+                    <textarea class="form-control text-monospace small" id="bulkImportTextarea" rows="7" 
+                              placeholder="Ejemplo:&#10;* 3x Leche UHT VIGOR 800ml - S/ 14.40&#10;* 1x Aceite Primor 1.8L - S/ 15.20&#10;* 2x Arroz Paisana 5kg - S/ 37.00"></textarea>
+
+                    <!-- Opciones de formato de precio -->
+                    <div class="bg-dark p-2 rounded mt-2 border border-secondary small">
+                        <div class="font-weight-bold text-light mb-1"><i class="fas fa-cog text-teal mr-1"></i> Configuración de Precios:</div>
+                        <div class="custom-control custom-radio mb-1">
+                            <input type="radio" id="bulkPriceIsTotal" name="bulkPriceMode" class="custom-control-input" checked onchange="updateBulkImportPreview()">
+                            <label class="custom-control-label" for="bulkPriceIsTotal">
+                                El precio en la lista es el <b>Total de la línea</b> (ej: <code>3x Leche - S/ 14.40</code> = S/ 4.80 c/u) <span class="text-teal font-italic">*(Recomendado para webs como Plaza Vea)*</span>
+                            </label>
+                        </div>
+                        <div class="custom-control custom-radio mb-2">
+                            <input type="radio" id="bulkPriceIsUnit" name="bulkPriceMode" class="custom-control-input" onchange="updateBulkImportPreview()">
+                            <label class="custom-control-label" for="bulkPriceIsUnit">
+                                El precio en la lista es <b>Unitario</b> (ej: <code>3x Leche - S/ 14.40</code> = S/ 43.20 en total)
+                            </label>
+                        </div>
+
+                        <div class="custom-control custom-checkbox border-top border-secondary pt-1">
+                            <input type="checkbox" class="custom-control-input" id="bulkReplaceExisting">
+                            <label class="custom-control-label text-warning" for="bulkReplaceExisting">
+                                <b>Reemplazar lista actual</b> (si no marcas esto, los productos se sumarán a los ya existentes)
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Previsualización en vivo -->
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="small font-weight-bold text-light">Vista Previa Detectada:</span>
+                            <div id="bulkPreviewStats">
+                                <span class="text-muted small"><i class="fas fa-info-circle"></i> Pega tu lista arriba para previsualizar</span>
+                            </div>
+                        </div>
+                        <div id="bulkPreviewContainer" class="border border-secondary rounded p-2 bg-dark">
+                            <div class="text-center text-muted py-3 small">Esperando que pegues tu lista...</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer d-flex justify-content-between">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-success font-weight-bold" id="btnSubmitBulkImport" onclick="executeBulkImport()" disabled>
+                        <i class="fas fa-bolt"></i> Importar Productos a la Lista
+                    </button>
+                </div>
             </div>
         </div>
     </div>
