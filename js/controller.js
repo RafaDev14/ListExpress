@@ -51,11 +51,13 @@ function setupEventListeners() {
         });
     }
 
-    // Input en tiempo real para importación masiva
+    // Input en tiempo real para importación masiva (escucha input, paste, keyup, change)
     const bulkTextarea = document.getElementById('bulkImportTextarea');
     if (bulkTextarea) {
-        bulkTextarea.addEventListener('input', () => {
-            updateBulkImportPreview();
+        ['input', 'paste', 'keyup', 'change'].forEach(evt => {
+            bulkTextarea.addEventListener(evt, () => {
+                setTimeout(updateBulkImportPreview, 20);
+            });
         });
     }
 }
@@ -158,8 +160,16 @@ function renderShoppingList() {
         container.innerHTML = `
             <div class="text-center py-5 text-muted">
                 <i class="fas fa-shopping-cart fa-3x mb-3" style="color: #424242;"></i>
-                <h5>No hay productos en esta vista</h5>
-                <p class="small">Cambia el filtro o presiona el botón <b>+</b> o la <b>Cámara</b> para agregar productos.</p>
+                <h5 class="text-white">Tu carrito está vacío</h5>
+                <p class="small mb-3">Empieza pegando tu lista de la web o agrega productos con la cámara.</p>
+                <div class="d-flex flex-column flex-sm-row justify-content-center align-items-center" style="gap: 10px;">
+                    <button class="btn btn-success btn-lg font-weight-bold px-4 mb-2 mb-sm-0" onclick="openBulkImportModal()">
+                        <i class="fas fa-paste mr-2"></i> Pegar Lista Masiva
+                    </button>
+                    <button class="btn btn-outline-info font-weight-bold px-3" onclick="openAddModal({ inCart: true })">
+                        <i class="fas fa-plus mr-1"></i> Agregar Uno a Uno
+                    </button>
+                </div>
             </div>
         `;
         return;
@@ -536,6 +546,28 @@ function updateBulkImportPreview() {
 }
 
 /**
+ * Intenta leer directamente del portapapeles del dispositivo si el navegador lo permite
+ */
+async function pasteFromClipboard() {
+    try {
+        if (navigator.clipboard && navigator.clipboard.readText) {
+            const text = await navigator.clipboard.readText();
+            if (text && text.trim()) {
+                const textarea = document.getElementById('bulkImportTextarea');
+                if (textarea) {
+                    textarea.value = text;
+                    updateBulkImportPreview();
+                }
+                return;
+            }
+        }
+    } catch (e) {
+        console.warn('Clipboard no disponible o sin permiso:', e);
+    }
+    alert('Mantén presionado el recuadro de texto para pegar tu lista copiada.');
+}
+
+/**
  * Carga la lista de ejemplo en el textarea
  */
 function loadBulkExample() {
@@ -560,8 +592,18 @@ function loadBulkExample() {
  * Ejecuta la importación masiva a la lista
  */
 function executeBulkImport() {
+    const textarea = document.getElementById('bulkImportTextarea');
+    
+    // Si lastParsedBulk está vacío, intentar analizar directamente el contenido actual del textarea
     if (!lastParsedBulk || lastParsedBulk.items.length === 0) {
-        alert('No se detectaron productos válidos para importar.');
+        if (textarea && textarea.value.trim()) {
+            const isLineTotal = document.getElementById('bulkPriceIsTotal') ? document.getElementById('bulkPriceIsTotal').checked : true;
+            lastParsedBulk = parseBulkProductText(textarea.value, { priceIsLineTotal: isLineTotal });
+        }
+    }
+
+    if (!lastParsedBulk || lastParsedBulk.items.length === 0) {
+        alert('Por favor pega una lista con productos antes de importar.');
         return;
     }
 
@@ -570,11 +612,11 @@ function executeBulkImport() {
     addMultipleProducts(lastParsedBulk.items, replaceExisting);
     $('#bulkImportModal').modal('hide');
 
-    // Cambiar a la pestaña de Planificar o Compras para que vea su lista
-    switchTab('planning');
+    // Cambiar a la pestaña de compras para ver los productos listos para meter al carrito
+    switchTab('shopping');
     renderApp();
 
-    alert(`¡Listo! Se agregaron ${lastParsedBulk.items.length} productos con un presupuesto total de S/ ${lastParsedBulk.totalEstimatedBudget.toFixed(2)}.`);
+    alert(`¡Éxito! Se importaron ${lastParsedBulk.items.length} productos a tu lista (Presupuesto Total: S/ ${lastParsedBulk.totalEstimatedBudget.toFixed(2)}).`);
 }
 
 function openAddModal(prefill = {}) {

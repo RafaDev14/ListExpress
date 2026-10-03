@@ -213,6 +213,8 @@ function parseBulkProductText(rawText, options = { priceIsLineTotal: true }) {
         errors
     };
 }
+
+function getProducts() {
     return products;
 }
 

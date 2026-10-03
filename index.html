@@ -333,6 +333,16 @@
         <!-- PESTAÑA 1: MODO COMPRA EN VIVO (CHECKLIST CARRITO) -->
         <!-- ============================================== -->
         <section id="tab-shopping" class="tab-pane">
+            <!-- Barra de Acceso Rápido en Modo Carrito -->
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <button class="btn btn-sm btn-success font-weight-bold" onclick="openBulkImportModal()">
+                    <i class="fas fa-paste mr-1"></i> Pegar Lista Masiva
+                </button>
+                <button class="btn btn-sm btn-outline-info font-weight-bold" onclick="openAddModal({ inCart: true })">
+                    <i class="fas fa-plus mr-1"></i> Agregar Uno
+                </button>
+            </div>
+
             <!-- Filtros de Estado -->
             <div class="filter-group">
                 <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">
@@ -584,13 +594,18 @@
                     </button>
                 </div>
                 <div class="modal-body">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <label for="bulkImportTextarea" class="small text-muted mb-0 font-weight-bold">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-2">
+                        <label for="bulkImportTextarea" class="small text-muted mb-1 mb-sm-0 font-weight-bold">
                             Pega tu lista aquí (de Plaza Vea, WhatsApp o tus notas):
                         </label>
-                        <button type="button" class="btn btn-outline-info btn-xs py-0 px-2 small" onclick="loadBulkExample()">
-                            <i class="fas fa-magic"></i> Cargar ejemplo
-                        </button>
+                        <div>
+                            <button type="button" class="btn btn-outline-success btn-xs py-0 px-2 small mr-1" onclick="pasteFromClipboard()">
+                                <i class="fas fa-clipboard"></i> Pegar Portapapeles
+                            </button>
+                            <button type="button" class="btn btn-outline-info btn-xs py-0 px-2 small" onclick="loadBulkExample()">
+                                <i class="fas fa-magic"></i> Cargar ejemplo
+                            </button>
+                        </div>
                     </div>
 
                     <textarea class="form-control text-monospace small" id="bulkImportTextarea" rows="7" 
